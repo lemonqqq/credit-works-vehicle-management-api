@@ -1,0 +1,6 @@
+@CreditWorks.VehicleManagement_HostAddress = http://localhost:5155
+
+GET {{CreditWorks.VehicleManagement_HostAddress}}
+Accept: application/json
+
+###

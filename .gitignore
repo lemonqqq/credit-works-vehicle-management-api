@@ -2,9 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/CreditWorks.VehicleManagement/.vs/CreditWorks.VehicleManagement.slnx
-/CreditWorks.VehicleManagement/obj
-/CreditWorks.VehicleManagement.Application/obj
-/CreditWorks.VehicleManagement.Domain/obj
-/CreditWorks.VehicleManagement.Infrastructure/obj
-/CreditWorks.VehicleManagement.Unit.Test/obj
+/.vs
+**/bin/
+**/obj/
+**/.vs
