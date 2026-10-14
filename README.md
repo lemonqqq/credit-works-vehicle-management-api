@@ -2,7 +2,7 @@
 
 Backend for the CreditWorks Software Engineer technical assignment. The intended application manages vehicles and weight categories using ASP.NET Core and SQL Server.
 
-> **Project status:** This README describes the target behaviour and design decisions. The repository currently contains an ASP.NET Core scaffold, preliminary domain types, and a test project. Vehicle/category endpoints, SQL Server persistence, migrations, seed data, and business-rule tests are still to be implemented. The assignment also requires a usable web interface; this API alone does not fulfil that part.
+> **Project status:** This README describes the target behaviour and design decisions. The API now registers an EF Core SQL Server DbContext, defines model-managed seed data, and implements vehicle create/update with application-level identifier checks. Vehicle reads and category endpoints remain stubs. There is no migration or completed web interface yet.
 
 ## Assignment scope
 
@@ -66,7 +66,7 @@ Validate a proposed category configuration as a whole before saving it. Reject g
 
 ## HTTP contracts (planned)
 
-These are target contracts, **not a claim that the endpoints already exist**. JSON property names below describe the intended API model. Use consistent validation responses (for example, Problem Details), `404` for missing records, and sanitized `5xx` responses for unexpected failures. Do not expose stack traces or connection strings.
+These describe the target contracts. Vehicle create/update currently implement only part of their described behaviour; vehicle reads and category endpoints are still stubs. JSON property names below describe the intended API model. Use consistent validation responses (for example, Problem Details), `404` for missing records, and sanitized `5xx` responses for unexpected failures. Do not expose stack traces or connection strings.
 
 | Method and route | Behaviour |
 | --- | --- |
@@ -89,7 +89,7 @@ The category administration routes must not allow a sequence of individually val
 - Validate on the server; frontend validation is only an additional usability measure.
 - Reject blank owner and category names, unknown manufacturers, missing icons, invalid years, nonpositive vehicle weights, and weights with more than two decimal places.
 - Use precise decimal storage (for example, SQL `decimal(18,2)`) for weights and range boundaries; do not use floating-point types.
-- Enforce VIN and registration uniqueness in the database as well as the application if these extra required fields remain in scope. Normalize values consistently before checking uniqueness.
+- Check VIN and registration uniqueness in the application before vehicle creation or update, after trimming and case normalization. The database does not have unique indexes for these fields. Without a database constraint, concurrent requests or writes outside this API can still create duplicates.
 - Make category validation and persistence atomic. Ensure each positive weight resolves to exactly one category at all times.
 - Handle malformed input, absent records, invalid category edits/deletions, uniqueness conflicts, and database failures with clear API errors.
 
@@ -119,25 +119,31 @@ The initial scaffold targets .NET 10. Keep the architecture proportionate to thi
 - .NET 10 SDK, matching the current project target.
 - SQL Server 2019 or later (SQL Server Express is acceptable) for the completed persistence implementation.
 
-### Current scaffold
+### Current implementation
 
 From the repository root, the existing API project can be built and run with:
 
+1. Initialize database - run below powershell in the project folder
 ```powershell
-dotnet build .\CreditWorks.VehicleManagement\CreditWorks.VehicleManagement.csproj
-dotnet run --project .\CreditWorks.VehicleManagement\CreditWorks.VehicleManagement.csproj
-dotnet test .\CreditWorks.VehicleManagement.Unit.Test\CreditWorks.VehicleManagement.Unit.Test.csproj
+# add EntityFramework packages
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+
+# initialize DB - create database and run migration script to create table and seeded data
+Set-Location credit-works-vehicle-management-api\build
+.\initiailize-db.ps1 -ServerInstance "(localdb)\MSSQLLocalDB"
 ```
 
-The current solution file lists only the API project, and the test project contains no behaviour tests yet. The current app runs the template Weather Forecast endpoint; the contracts above are not implemented.
+The solution includes the API, application, domain, infrastructure, data, and test projects. Four unit tests cover application-level VIN and registration checks. Vehicle create/update can use SQL Server after a database has been created; the remaining vehicle read and category actions are not implemented.
 
 ### Database setup (pending implementation)
 
-Add the EF Core SQL Server provider, DbContext, migrations, and seed configuration. Document the connection-string key, local configuration method, and exact migration command once those files exist. A reviewer must be able to clone the repository, configure SQL Server, apply migrations, build, run, and test without reverse-engineering the schema or performing undocumented manual steps.
+The EF Core SQL Server provider, DbContext registration, and model-managed seed definitions are present. Configure `ConnectionStrings:DefaultConnection` through user secrets or an environment variable; the committed `Database` settings are empty. An initial migration and documented migration-application command are still needed. A reviewer must be able to clone the repository, configure SQL Server, apply migrations, build, run, and test without reverse-engineering the schema or performing undocumented manual steps.
 
 ## Scope and known limitations
 
 - The assignment requires a web interface for vehicle listing and category administration. Frontend implementation is outside this API repository's current scaffold.
 - Vehicle change auditing, authentication, and authorisation are out of scope for the assessment. A production deployment would revisit these choices.
 - VIN, registration number, description, vehicle editing, filters, pagination, preview, and health checking are project choices beyond the assignment's minimum requirements.
-- SQL persistence, migrations, seed data, required endpoints, and automated business-rule tests remain to be implemented.
+- SQL Server model configuration and seed definitions exist, but no migration has been created or applied. Vehicle read, category administration, category calculation, and other business-rule tests remain to be implemented.
+- SQL and data encryption is out of scope for this assessment as it is not required.

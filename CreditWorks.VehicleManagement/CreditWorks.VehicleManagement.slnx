@@ -3,7 +3,6 @@
     <Project Path="../CreditWorks.VehicleManagement.Application/CreditWorks.VehicleManagement.Application.csproj" />
   </Folder>
   <Folder Name="/Domain/">
-    <Project Path="../CreditWorks.VehicleManagement.Data/CreditWorks.VehicleManagement.Data.csproj" />
     <Project Path="../CreditWorks.VehicleManagement.Domain/CreditWorks.VehicleManagement.Domain.csproj" />
     <Project Path="../CreditWorks.VehicleManagement.Infrastructure/CreditWorks.VehicleManagement.Infrastructure.csproj" />
   </Folder>

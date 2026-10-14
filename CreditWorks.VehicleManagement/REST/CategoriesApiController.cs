@@ -3,7 +3,7 @@
 namespace CreditWorks.VehicleManagement.REST
 {
     [ApiController]
-    [Route("/api/[controller]")]
+    [Route("/api/categories")]
     public class CategoriesApiController : ControllerBase
     {
         [HttpGet]
@@ -18,13 +18,13 @@ namespace CreditWorks.VehicleManagement.REST
             return Ok();
         }
 
-        [HttpPut("/{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> Put(Guid id)
         {
             return Ok();
         }
 
-        [HttpDelete("/{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             return Ok();

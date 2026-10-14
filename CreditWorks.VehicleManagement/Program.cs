@@ -1,3 +1,6 @@
+using CreditWorks.VehicleManagement.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +9,9 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<VehicleManagementDbContext>(options =>
+    options.UseSqlServer(DatabaseConfiguration.GetConnectionString(builder.Configuration)));
 
 var app = builder.Build();
 
