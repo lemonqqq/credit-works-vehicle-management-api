@@ -1,3 +1,4 @@
+using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 using CreditWorks.VehicleManagement.Domain.Aggregates;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
 
@@ -36,8 +37,25 @@ public interface IVehicleStore
     /// </returns>
     Task<List<Vehicle>> QueryAsync(string? ownerName = null, string? manufacturer = null, int? year = null,
         string? vin = null, string? registrationNumber = null, decimal? minWeightKg = null, decimal? maxWeightKg = null,
-        int pageNumber = 1, string? sortingList = null, CancellationToken cancellationToken = default);
+        int pageNumber = 1, List<FieldSortOrder>? sortingList = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///     Retrieves number of vehicles that match the provided filter criteria.
+    /// </summary>
+    /// <param name="ownerName">Optional owner name fragment used to match vehicles whose owner name contains the supplied value.</param>
+    /// <param name="manufacturer">Optional manufacturer name fragment used to match vehicles whose manufacturer name contains the supplied value.</param>
+    /// <param name="year">Optional year used to match vehicles with an exact manufacturing year.</param>
+    /// <param name="vin">Optional VIN fragment used to match vehicles whose VIN contains the supplied value.</param>
+    /// <param name="registrationNumber">Optional registration number fragment used to match vehicles whose registration number contains the supplied value.</param>
+    /// <param name="minWeightKg">Optional minimum vehicle weight in kilograms. Vehicles below this value are excluded.</param>
+    /// <param name="maxWeightKg">Optional maximum vehicle weight in kilograms. Vehicles above this value are excluded.</param>
+    /// <param name="cancellationToken">A token used to cancel the request.</param>
+    /// <returns>
+    ///     Number of vehicles that satisfy all specified filters. The related manufacturer is eagerly loaded.
+    /// </returns>
+    Task<int> QueryCountAsync(string? ownerName = null, string? manufacturer = null, int? year = null,
+        string? vin = null, string? registrationNumber = null, decimal? minWeightKg = null, decimal? maxWeightKg = null,
+        CancellationToken cancellationToken = default);
     /// <summary>
     ///     Adds a new vehicle to the data store. The caller is responsible for saving the change.
     /// </summary>

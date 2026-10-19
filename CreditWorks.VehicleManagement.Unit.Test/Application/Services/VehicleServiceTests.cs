@@ -1,8 +1,10 @@
 using CreditWorks.VehicleManagement.Application.Contracts;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Queries;
+using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 using CreditWorks.VehicleManagement.Application.Services.Impl;
 using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Commands;
-using CreditWorks.VehicleManagement.Domain.Queries;
+using CreditWorks.VehicleManagement.Domain.Exceptions;
 
 namespace CreditWorks.VehicleManagement.Unit.Test.Application.Services;
 
@@ -27,8 +29,8 @@ public sealed class VehicleServiceTests
         command.Vin = null!;
         command.RegistrationNumber = null!;
 
-        await Assert.ThrowsAsync<CreditWorks.VehicleManagement.Domain.Exceptions.BusinessValidationException>(
-            () => CreateService(store).Validate(command));
+        await Assert.ThrowsAsync<BusinessValidationException>(
+            () => CreateService(store).Create(command));
         Assert.Empty(store.Data);
     }
 
@@ -37,9 +39,8 @@ public sealed class VehicleServiceTests
     {
         var store = new VehicleStoreFake();
         var service = CreateService(store);
-        var vehicle = await service.Validate(ValidCommand());
-        await service.Create(vehicle);
-        Assert.Equal(vehicle.Id, Assert.Single(store.Data).Id);
+        await service.Create(ValidCommand());
+        Assert.NotEqual(Guid.Empty, Assert.Single(store.Data).Id);
         Assert.Equal(1850.75m, store.Data[0].WeightKg);
         Assert.Equal(MazdaId, store.Data[0].ManufacturerId);
     }
@@ -56,8 +57,7 @@ public sealed class VehicleServiceTests
         command.WeightKg = 499.99m;
 
         var service = CreateService(store);
-        var validated = await service.Validate(command, existing.Id);
-        await service.Update(validated);
+        await service.Update(command, existing.Id);
 
         Assert.Equal("Taylor Smith", store.Data[0].OwnerName);
         Assert.Equal(499.99m, store.Data[0].WeightKg);
@@ -70,17 +70,17 @@ public sealed class VehicleServiceTests
         store.Data.Add(Vehicle.Rehydrate(Guid.NewGuid(), "Alex Smith", MazdaId, "Mazda", 2020,
             "ABC12345678901234", "ABC123", 1850.75m));
 
-        var result = (await CreateService(store).Search(new VehicleSearchQuery(), [], CancellationToken.None)).ToList();
-        Assert.Single(result);
-        Assert.Equal("Mazda", result[0].Manufacturer);
+        var result = await CreateService(store).Search(new VehicleSearchQuery(), CancellationToken.None);
+        Assert.Single(result.Data);
+        Assert.Equal("Mazda", result.Data[0].Manufacturer);
     }
 
     [Fact]
     public async Task Search_WhenNoVehiclesMatch_ThenReturnsEmptyList()
     {
         var result = await CreateService(new VehicleStoreFake())
-            .Search(new VehicleSearchQuery(), [], CancellationToken.None);
-        Assert.Empty(result);
+            .Search(new VehicleSearchQuery(), CancellationToken.None);
+        Assert.Empty(result.Data);
     }
 
     [Fact]
@@ -96,24 +96,105 @@ public sealed class VehicleServiceTests
         Assert.Equal("Mazda", result.Manufacturer);
     }
 
+    [Fact]
+    public async Task Create_WhenManufacturerUnknown_ThenDoesNotPersistVehicle()
+    {
+        var store = new VehicleStoreFake();
+        var command = ValidCommand();
+        command.Manufacturer = "Unknown";
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => CreateService(store).Create(command));
+        Assert.Empty(store.Data);
+    }
+
+    [Fact]
+    public async Task Create_WhenVinAlreadyUsed_ThenDoesNotPersistVehicle()
+    {
+        var store = new VehicleStoreFake();
+        store.Data.Add(Vehicle.Rehydrate(Guid.NewGuid(), "Existing", MazdaId, "Mazda", 2020,
+            "ABC12345678901234", "OLD123", 100m));
+        await Assert.ThrowsAsync<BusinessConflictException>(() => CreateService(store).Create(ValidCommand()));
+        Assert.Single(store.Data);
+    }
+
+    [Fact]
+    public async Task Create_WhenRegistrationAlreadyUsed_ThenDoesNotPersistVehicle()
+    {
+        var store = new VehicleStoreFake();
+        store.Data.Add(Vehicle.Rehydrate(Guid.NewGuid(), "Existing", MazdaId, "Mazda", 2020,
+            "XYZ12345678901234", "ABC123", 100m));
+        await Assert.ThrowsAsync<BusinessConflictException>(() => CreateService(store).Create(ValidCommand()));
+        Assert.Single(store.Data);
+    }
+
+    [Fact]
+    public async Task Update_WhenVehicleMissing_ThenReportsNotFound()
+    {
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            CreateService(new VehicleStoreFake()).Update(ValidCommand(), Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Get_WhenVehicleMissing_ThenReportsNotFound()
+    {
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            CreateService(new VehicleStoreFake()).Get(Guid.NewGuid(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Search_WhenFiltersAndSortProvided_ThenForwardsCriteriaAndReturnsTotal()
+    {
+        var store = new VehicleStoreFake();
+        store.Data.Add(Vehicle.Rehydrate(Guid.NewGuid(), "Alex Smith", MazdaId, "Mazda", 2020,
+            "ABC12345678901234", "ABC123", 1850.75m));
+        var result = await CreateService(store).Search(new VehicleSearchQuery
+        {
+            OwnerName = "Alex", ManufacturerName = "Mazda", Year = 2020,
+            MinWeightKg = 500m, MaxWeightKg = 2500m, PageNumber = 2,
+            SortFieldList = [new FieldSortOrder { FieldName = "weight", IsAscending = false }]
+        }, CancellationToken.None);
+        Assert.Equal("Alex", store.LastOwnerName);
+        Assert.Equal("Mazda", store.LastManufacturer);
+        Assert.Equal(2, store.LastPageNumber);
+        Assert.Equal("weight", Assert.Single(store.LastSortingList!).FieldName);
+        Assert.False(store.LastSortingList![0].IsAscending);
+        Assert.Equal(500m, store.LastMinWeightKg);
+        Assert.Equal(2500m, store.LastMaxWeightKg);
+        Assert.Equal(1, result.TotalRecords);
+    }
+
     private sealed class VehicleStoreFake : IVehicleStore
     {
         public List<Vehicle> Data { get; } = [];
+        public string? LastOwnerName { get; private set; }
+        public string? LastManufacturer { get; private set; }
+        public int LastPageNumber { get; private set; }
+        public List<FieldSortOrder>? LastSortingList { get; private set; }
+        public decimal? LastMinWeightKg { get; private set; }
+        public decimal? LastMaxWeightKg { get; private set; }
 
         public Task<Vehicle?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(Data.SingleOrDefault(x => x.Id == id));
 
         public Task<List<Vehicle>> QueryAsync(string? ownerName = null, string? manufacturer = null,
             int? year = null, string? vin = null, string? registrationNumber = null,
-            decimal? minWeightKg = null, decimal? maxWeight = null, int pageNumber = 1, string? sortingList = null,
-            CancellationToken cancellationToken = default) => Task.FromResult(Data.Where(x =>
+            decimal? minWeightKg = null, decimal? maxWeight = null, int pageNumber = 1, List<FieldSortOrder>? sortingList = null,
+            CancellationToken cancellationToken = default)
+        {
+            LastOwnerName = ownerName;
+            LastManufacturer = manufacturer;
+            LastPageNumber = pageNumber;
+            LastSortingList = sortingList;
+            LastMinWeightKg = minWeightKg;
+            LastMaxWeightKg = maxWeight;
+            return Task.FromResult(Data.Where(x =>
                 (ownerName is null || x.OwnerName.Contains(ownerName)) &&
                 (manufacturer is null || x.ManufacturerName.Contains(manufacturer) == true) &&
                 (year is null || x.Year == year) &&
                 (vin is null || x.Vin.Contains(vin)) &&
                 (registrationNumber is null || x.RegistrationNumber.Contains(registrationNumber)) &&
                 (minWeightKg is null || x.WeightKg >= minWeightKg) &&
-                (maxWeight is null || x.WeightKg <= maxWeight)).ToList());
+                (maxWeight is null || x.WeightKg < maxWeight)).ToList());
+        }
 
         public Task AddAsync(Vehicle vehicle)
         {
@@ -122,6 +203,15 @@ public sealed class VehicleServiceTests
         }
 
         public Task UpdateAsync(Vehicle vehicle) => Task.CompletedTask;
+        public Task<int> QueryCountAsync(string? ownerName = null, string? manufacturer = null,
+            int? year = null, string? vin = null, string? registrationNumber = null,
+            decimal? minWeightKg = null, decimal? maxWeightKg = null,
+            CancellationToken cancellationToken = default) => Task.FromResult(Data.Count(x =>
+                (ownerName is null || x.OwnerName.Contains(ownerName)) &&
+                (manufacturer is null || x.ManufacturerName?.Contains(manufacturer) == true) &&
+                (year is null || x.Year == year) &&
+                (minWeightKg is null || x.WeightKg >= minWeightKg) &&
+                (maxWeightKg is null || x.WeightKg < maxWeightKg)));
         public Task DeleteAsync(Guid id) => Task.CompletedTask;
     }
 

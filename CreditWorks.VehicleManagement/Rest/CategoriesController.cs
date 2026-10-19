@@ -1,8 +1,9 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Application.Services;
-using CreditWorks.VehicleManagement.Domain.Commands;
 using CreditWorks.VehicleManagement.Infrastructure.Common;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CreditWorks.VehicleManagement.Rest
 {
@@ -40,7 +41,6 @@ namespace CreditWorks.VehicleManagement.Rest
         public async Task<IActionResult> Patch(CategoryCommand command)
             => await ToResponse(async() =>
             {
-                categoryService.Validate(command.Categories);
                 if (!requestQueueService.TryEnqueue(async services =>
                     await services.GetRequiredService<IVehicleCategoryService>()
                         .Maintain(command, CancellationToken.None), out var queueId))

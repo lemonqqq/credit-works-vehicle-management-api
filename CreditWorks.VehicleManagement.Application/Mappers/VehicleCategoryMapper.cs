@@ -1,5 +1,5 @@
-﻿using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Queries.Dto;
+﻿using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
+using CreditWorks.VehicleManagement.Domain.Aggregates;
 
 namespace CreditWorks.VehicleManagement.Application.Mappers
 {

@@ -1,4 +1,4 @@
-﻿using CreditWorks.VehicleManagement.Domain.Queries.Dto;
+﻿using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 using CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities;
 using AggregatesVehicle = CreditWorks.VehicleManagement.Domain.Aggregates.Vehicle;
 

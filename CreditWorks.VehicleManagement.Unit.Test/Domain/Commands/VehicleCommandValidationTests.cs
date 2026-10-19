@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using CreditWorks.VehicleManagement.Domain.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
 
 namespace CreditWorks.VehicleManagement.Unit.Test.Domain.Commands;
 
@@ -87,5 +87,16 @@ public sealed class VehicleCommandValidationTests
         var errors = Validate(command);
         Assert.Contains(errors, error => error.MemberNames.Contains(nameof(VehicleCommand.Vin)));
         Assert.Contains(errors, error => error.MemberNames.Contains(nameof(VehicleCommand.RegistrationNumber)));
+    }
+
+    [Fact]
+    [Trait("Requirement", "FourRequiredFields")]
+    public void VehicleCommand_WhenOnlyAssignmentFieldsProvided_ThenValidationPasses()
+    {
+        var command = new VehicleCommand
+        {
+            OwnerName = "Alex Smith", Manufacturer = "Mazda", Year = 2020, WeightKg = 1850.75m
+        };
+        Assert.Empty(Validate(command));
     }
 }

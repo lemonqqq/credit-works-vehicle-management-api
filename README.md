@@ -1,149 +1,64 @@
 # CreditWorks Vehicle Management API
 
-Backend for the CreditWorks Software Engineer technical assignment. The intended application manages vehicles and weight categories using ASP.NET Core and SQL Server.
+ASP.NET Core 10 API with Entity Framework Core and SQL Server for the vehicle management assessment. The sibling [React app](../credit-works-vehicle-management-app/README.md) provides the UI. Requirements below describe the intended behavior; the status notes identify what the current code actually delivers.
 
-> **Project status:** This README describes the target behaviour and design decisions. The API now registers an EF Core SQL Server DbContext, defines model-managed seed data, and implements vehicle create/update with application-level identifier checks. Vehicle reads and category endpoints remain stubs. There is no migration or completed web interface yet.
+## Run locally
 
-## Assignment scope
+Prerequisites: .NET 10 SDK, SQL Server 2019 or later (LocalDB is suitable locally), and the `dotnet-ef` tool. From this directory:
 
-Users must be able to add vehicles; view and sort all vehicles; see each vehicle's current weight category and icon; and create, edit, and delete categories. Category definitions must cover every valid vehicle weight without gaps or overlaps. Changes to categories must immediately affect the category shown for existing vehicles. Data must persist in SQL Server 2019 or later.
-
-## Vehicle
-
-| Field | Requirement | Notes |
-| --- | --- | --- |
-| `id` | Required, server generated | GUID. |
-| `ownerName` | Required | Nonblank string. |
-| `manufacturerId` | Required | References a predefined manufacturer. |
-| `year` | Required | Sensible year of manufacture. |
-| `weightKg` | Required | Positive decimal in kilograms, with at most two decimal places. |
-| `vin` | Required **project extension** | Unique after trimming and case normalization. The assignment does not require this field. |
-| `registrationNumber` | Required **project extension** | At most six characters; unique after trimming and case normalization. The assignment does not require this field. |
-| `description` | Optional **project extension** | Free text. |
-
-The core assignment requires only owner name, manufacturer, year, and weight. Requiring VIN and registration number is an additional product decision and makes the create contract stricter than the brief; revisit this decision if the reviewer expects vehicles to be created using only the four assignment fields.
-
-`Make` is treated as another name for manufacturer, rather than stored twice. Model, WOF expiry, service expiry, and status are out of scope for this exercise. The proposed vehicle update operation keeps weight immutable after registration; category changes can still change its calculated category.
-
-### Manufacturers
-
-Seed Mazda, Mercedes, Honda, Ferrari, and Toyota. Store manufacturers as data referenced by vehicles, rather than repeating an enum or string list throughout the code. A read endpoint supplies the vehicle form. Adding or modifying manufacturers is a possible extension; the assignment does not require manufacturer administration.
-
-### Vehicle list
-
-Return owner name, manufacturer, year, and the **current** category name and icon for every vehicle. Weight must remain available to the backend for categorisation and sorting, even if the UI does not display it.
-
-Support sorting by `ownerName`, `manufacturer`, `year`, and `weightKg`. Ascending and descending order are supported as a project choice. Return the applied sort field and direction, and use `id` as a stable tie-breaker. Pagination is an additional choice; apply sorting and pagination in the database and return the total count. Optional filters may include manufacturer, year, and weight range. The previously proposed make/model/status sorts and make/model filters do not apply because those are not separate fields in this design.
-
-## Vehicle categories
-
-| Field | Requirement | Notes |
-| --- | --- | --- |
-| `id` | Required, server generated | GUID. |
-| `name` | Required | Nonblank; unique among categories. |
-| `description` | Optional | Free text. |
-| `minWeightKg` | Required | Inclusive lower boundary; nonnegative decimal with two decimal places. |
-| `maxWeightKgExclusive` | Optional | Exclusive upper boundary; `null` means no upper limit. |
-| `iconKey` | Required | Key for a bundled, allowlisted icon asset. |
-
-Valid vehicle weights are greater than zero. Category ranges use **inclusive lower and exclusive upper** boundaries: `[minWeightKg, maxWeightKgExclusive)`. The first category starts at `0`; adjacent boundaries must be equal; exactly one final category has no upper boundary. Each finite upper boundary must be greater than its lower boundary. This covers all positive weights without gaps or overlaps.
-
-Seed the following configuration:
-
-| Category | Range | Boundary examples |
-| --- | --- | --- |
-| Light | `0 < weightKg < 500.00` | `499.99` is Light. |
-| Medium | `500.00 <= weightKg < 2500.00` | `500.00` is Medium. |
-| Heavy | `weightKg >= 2500.00` | `2500.00` is Heavy. |
-
-Assign an icon to each seeded category. Icon keys resolve to application assets; do not accept arbitrary file paths or executable content as icon values.
-
-### Category changes
-
-The category returned for a vehicle is calculated from its weight and the **current** ranges. Do not persist a vehicle-to-category relationship that can become stale. A change to ranges must therefore be reflected in subsequent vehicle reads without rewriting vehicle records.
-
-Validate a proposed category configuration as a whole before saving it. Reject gaps, overlaps, invalid bounds, missing icons, duplicate names, or a missing open-ended final range. Use a transaction and concurrency protection so concurrent edits cannot leave an invalid configuration. Single-category create, edit, and delete operations must also validate their resulting full configuration. A configuration preview can report errors and show how existing vehicles would be categorised; applying the configuration remains a separate explicit action. Moving a shared boundary between two categories should use the atomic configuration endpoint.
-
-## HTTP contracts (planned)
-
-These describe the target contracts. Vehicle create/update currently implement only part of their described behaviour; vehicle reads and category endpoints are still stubs. JSON property names below describe the intended API model. Use consistent validation responses (for example, Problem Details), `404` for missing records, and sanitized `5xx` responses for unexpected failures. Do not expose stack traces or connection strings.
-
-| Method and route | Behaviour |
-| --- | --- |
-| `GET /health` | Return `200 OK` when the host is running. This is an extra operational endpoint, not an assignment requirement. |
-| `POST /api/vehicles` | Validate required fields, manufacturer reference, sensible year, positive two-decimal weight, and the project-specific VIN/registration rules. Persist the vehicle; return `201 Created` with ID and calculated current category/icon. |
-| `GET /api/vehicles/{id}` | Return a vehicle and its current calculated category/icon, or `404 Not Found`. Supports the optional edit flow. |
-| `PUT /api/vehicles/{id}` | Replace editable details of an existing vehicle, enforcing the same validation and uniqueness rules. Reject weight changes under the immutable-weight assumption; return the updated vehicle or `404`. Vehicle editing is an extra feature beyond the brief. |
-| `GET /api/vehicles/list` | Return the vehicle list with owner, manufacturer, year, current category/icon, total count, pagination, and applied sort. Accept `sortBy` values `ownerName`, `manufacturer`, `year`, or `weightKg`; `direction=asc` or `desc`; `page`; and `pageSize`. Optionally accept manufacturer/year/weight filters. |
-| `GET /api/categories` | Return categories ordered by minimum weight, including ranges and icon keys. |
-| `POST /api/categories` | Create a category only if the resulting complete range configuration remains valid; return `201 Created` or a clear validation error. |
-| `PUT /api/categories/{id}` | Edit a category, validate the complete resulting configuration, and return the updated category; return `404` for an unknown ID. |
-| `DELETE /api/categories/{id}` | Delete a category only if coverage remains complete and unambiguous; otherwise return a clear validation error. |
-| `POST /api/categories/configuration/preview` | Validate a proposed complete category set without saving it. Return gaps/overlaps/boundary errors and a summary of how existing vehicles would be classified. This is an optional aid to the review-before-apply flow. |
-| `PUT /api/categories/configuration` | Validate and atomically replace the proposed complete category configuration. Reject invalid or conflicting changes; subsequent vehicle reads use the new categories immediately. |
-
-The category administration routes must not allow a sequence of individually valid requests to leave an invalid state. The configuration endpoint is the preferred way to split a range, merge ranges, or move a boundary shared by two categories.
-
-## Validation and data integrity
-
-- Validate on the server; frontend validation is only an additional usability measure.
-- Reject blank owner and category names, unknown manufacturers, missing icons, invalid years, nonpositive vehicle weights, and weights with more than two decimal places.
-- Use precise decimal storage (for example, SQL `decimal(18,2)`) for weights and range boundaries; do not use floating-point types.
-- Check VIN and registration uniqueness in the application before vehicle creation or update, after trimming and case normalization. The database does not have unique indexes for these fields. Without a database constraint, concurrent requests or writes outside this API can still create duplicates.
-- Make category validation and persistence atomic. Ensure each positive weight resolves to exactly one category at all times.
-- Handle malformed input, absent records, invalid category edits/deletions, uniqueness conflicts, and database failures with clear API errors.
-
-## Technical approach
-
-- **API:** ASP.NET Core controllers handle HTTP requests, responses, and input validation.
-- **Application/domain:** Services enforce category coverage, boundary rules, vehicle validation, and category calculation independently of controllers.
-- **Data:** Entity Framework Core with SQL Server 2019 or later is the intended persistence approach. Use migrations and seed the five manufacturers and three initial categories. Keep connection strings in local configuration or user secrets, never in source control.
-- **Category calculation:** Resolve categories from current ranges at read time. No vehicle-category foreign key is required.
-- **Security:** Use parameterised EF Core queries, validate user input, restrict icon keys to known assets, and return safe error messages. Authentication and authorisation are not required by the assignment.
-
-The initial scaffold targets .NET 10. Keep the architecture proportionate to this small application; the existing project folders do not imply that every feature is implemented or wired into the solution yet.
-
-## Automated tests to add
-
-- Vehicle validation, including missing core fields, invalid years, nonpositive weights, decimal precision, and project-specific VIN/registration uniqueness.
-- Category determination immediately below, at, and above `500.00` and `2500.00` kg.
-- Rejection of range gaps, overlaps, invalid bounds, and deletion of a required range.
-- Reclassification of existing vehicles after an atomic category change.
-- Vehicle sorting by each required field and both directions; pagination stability if pagination is retained.
-- Integration tests for SQL persistence, seeding, transactions, and concurrent category edits where practical.
-
-## Getting started
-
-### Prerequisites
-
-- .NET 10 SDK, matching the current project target.
-- SQL Server 2019 or later (SQL Server Express is acceptable) for the completed persistence implementation.
-
-### Current implementation
-
-From the repository root, the existing API project can be built and run with:
-
-1. Initialize database - run below powershell in the project folder
 ```powershell
-# add EntityFramework packages
-dotnet add package Microsoft.EntityFrameworkCore.Design
-dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-
-# initialize DB - create database and run migration script to create table and seeded data
-Set-Location credit-works-vehicle-management-api\build
-.\initiailize-db.ps1 -ServerInstance "(localdb)\MSSQLLocalDB"
+./build/initialize-db.ps1 -ServerInstance "(localdb)\MSSQLLocalDB"
+dotnet run --project CreditWorks.VehicleManagement/CreditWorks.VehicleManagement.csproj --launch-profile http
 ```
 
-The solution includes the API, application, domain, infrastructure, data, and test projects. Four unit tests cover application-level VIN and registration checks. Vehicle create/update can use SQL Server after a database has been created; the remaining vehicle read and category actions are not implemented.
+The script stores `ConnectionStrings:DefaultConnection` in API user secrets and applies the checked-in `InitialCreate` migration. It defaults to database `CreditWorksDB`; `-DatabaseName` overrides this. Alternatively, set `ConnectionStrings:DefaultConnection` or all of `Database:Server`, `Database:Name`, `Database:Username`, and `Database:Password`. The latter path uses SQL encryption and requires a trusted server certificate. The development HTTP profile listens on `http://localhost:5155`; Swagger UI is at `/swagger` in Development. `GET /health` reports host availability, not database health. Migrations are not run automatically at startup.
 
-### Database setup (pending implementation)
+Run `dotnet test CreditWorks.VehicleManagement.Unit.Test/CreditWorks.VehicleManagement.Unit.Test.csproj` for .NET tests. See [TESTING.md](TESTING.md) and the app's [TESTING.md](../credit-works-vehicle-management-app/TESTING.md) for mocked UI and SQL-backed scenarios.
 
-The EF Core SQL Server provider, DbContext registration, and model-managed seed definitions are present. Configure `ConnectionStrings:DefaultConnection` through user secrets or an environment variable; the committed `Database` settings are empty. An initial migration and documented migration-application command are still needed. A reviewer must be able to clone the repository, configure SQL Server, apply migrations, build, run, and test without reverse-engineering the schema or performing undocumented manual steps.
+## Functional requirements
 
-## Scope and known limitations
+| Requirement | Current API behavior |
+| --- | --- |
+| Create a vehicle | `POST /api/vehicles` accepts owner name, manufacturer name, year, VIN, registration number, and weight in kg. A GUID is generated when queued work runs. VIN and registration are required project extensions beyond the assessment's four minimum fields. |
+| Read and update vehicles | `GET /api/vehicles/{id}` returns vehicle details or `404`. `PUT /api/vehicles/{id}` queues replacement of an existing record; weight can change. No vehicle delete endpoint is exposed. |
+| List, search, sort, and page vehicles | `GET /api/vehicles/search` returns `{ data, pageCount, totalRecords }`. Filters are owner-name substring, manufacturer-name substring, exact year, and inclusive minimum/maximum weight. The store takes 10 rows per page. `sortFieldList` can specify fields and directions for Dynamic LINQ; the UI currently sorts one field on its loaded page instead of sending this parameter. |
+| Use predefined manufacturers | SQL seed data contains Mazda, Mercedes, Honda, Ferrari, and Toyota. Vehicle writes look up a manufacturer by name; unknown names fail when queued work executes. There is no manufacturer list or administration endpoint. |
+| Manage weight categories | `GET /api/categories/list` returns category definitions. `PATCH /api/categories` accepts a **complete** `{ "categories": [...] }` set: omit/`null` ID for a new category, retain an existing ID to edit, and omit an existing category to delete. The service validates the full set, then applies it in a transaction. There are no individual category mutation or preview endpoints. |
+| Maintain one current category per positive vehicle weight | Every valid configuration begins at 0, has adjacent nonoverlapping lower-inclusive/upper-exclusive ranges, and ends with one open upper bound. Vehicles store weight but no category ID. The API returns vehicle and category data separately; the UI calculates the current category and icon from the latest ranges. |
 
-- The assignment requires a web interface for vehicle listing and category administration. Frontend implementation is outside this API repository's current scaffold.
-- Vehicle change auditing, authentication, and authorisation are out of scope for the assessment. A production deployment would revisit these choices.
-- VIN, registration number, description, vehicle editing, filters, pagination, preview, and health checking are project choices beyond the assignment's minimum requirements.
-- SQL Server model configuration and seed definitions exist, but no migration has been created or applied. Vehicle read, category administration, category calculation, and other business-rule tests remain to be implemented.
-- SQL and data encryption is out of scope for this assessment as it is not required.
+Initial data includes 20 vehicles and Light `[0, 500)` (`car`), Medium `[500, 2500)` (`van`), and Heavy `[2500, infinity)` (`truck`). Thus 500.00 kg is Medium and 2500.00 kg is Heavy. Category names must be nonblank and unique ignoring case within a proposed set; icon keys must be nonblank; boundaries have at most two decimal places. A finite upper bound must exceed its lower bound. Multiple categories may reuse an icon key.
+
+Vehicle validation requires nonblank owner, a known manufacturer, year from 2000 through the next UTC calendar year (the command also caps it at 2050), a 17-character alphanumeric VIN, a 1–6-character alphanumeric registration, and positive weight with at most two decimal places. Owner and identifiers are trimmed on save. The service checks VIN and registration duplicates on create/update. The SQL model uses `decimal(18,2)` for weight and boundaries.
+
+### HTTP contract
+
+| Method and path | Response |
+| --- | --- |
+| `GET /health` | `200` with `{ "status": "healthy" }`. |
+| `GET /api/vehicles/{id}` | Vehicle DTO or `404`. |
+| `GET /api/vehicles/search` | `{ data, pageCount, totalRecords }`. Query fields: `ownerName`, `manufacturerName`, `year`, `minWeightKg`, `maxWeightKg`, `pageNumber`, and `sortFieldList` items with `fieldName` and `isAscending`. |
+| `POST /api/vehicles` | `202 Accepted` with a queue GUID when enqueued. |
+| `PUT /api/vehicles/{id}` | `202 Accepted` with a queue GUID when enqueued. |
+| `GET /api/categories/list` | Array of `{ id, name, description, minWeightKg, maxWeightKg, iconKey }`. |
+| `PATCH /api/categories` | `202 Accepted` with a queue GUID for a complete configuration request. |
+
+Handled validation returns Problem Details (`400`), missing records `404`, and business conflicts `409`; an unexpected controller error yields a generic `500`. A full write queue returns `503`. Some validation, not-found, and conflict checks run **after** a write has been accepted, so these statuses may not reach the original caller.
+
+## Non-functional requirements and current limits
+
+- **Persistence and consistency:** EF Core persists vehicles, manufacturers, and categories in SQL Server. Category replacement uses a transaction and clears the in-process category cache. The single queue reader serializes writes only within this API process; multiple instances or external database writers are not coordinated. Category reads are cached in memory without cross-instance invalidation.
+- **Queued execution:** The bounded in-process channel holds up to 100 pending writes. One background worker processes them in fresh service scopes. This is an assessment demonstration of responsive request handling: callers can return to other work while the server processes a write. Internal statuses are `queued`, `running`, `succeeded`, and `failed`, but no HTTP status lookup or notification exists. Queue contents and statuses are lost on restart. `202 Accepted` means queued, not saved. A production version should replace the channel with a database-backed durable queue or an external message broker, with retries and persistent status tracking.
+- **Validation and integrity:** Server-side command/domain checks and full category-set validation protect normal API writes. VIN and registration duplicate checks have no database unique indexes, so they are not a concurrency guarantee. The API checks only that icon keys are nonblank; the UI's fixed `bike`, `car`, `van`, and `truck` icon list is not enforced by the server.
+- **Security:** EF Core uses parameterized queries for ordinary filters. The sort expression is built from client-supplied `fieldName` values for Dynamic LINQ without an allowlist; invalid fields can fail at runtime and should be restricted before wider deployment. No authentication/authorization is configured; local assessment use is assumed.
+- **Observability and errors:** Responses receive an `X-Correlation-ID` header and requests are logged with it. Worker failures are logged, but cannot be retrieved through the API. Development mode exposes OpenAPI/Swagger; unexpected controller errors return a generic response.
+- **Paging and performance:** Search applies filtering and a fixed 10-row page in SQL, then counts matches separately. `pageCount` currently contains the requested page number when rows exist, or 0 when the page is empty; it is not the total page count. No stable sort tie-breaker or measured performance target is defined.
+- **Availability and deployment:** `/health` checks only that the host responds. The in-memory queue/cache design targets one local machine. A cloud deployment would need shared durable work storage, retries, status reporting, and cache coordination. Amazon SQS, Azure Queue Storage/Service Bus, or a database-backed queue are possible replacements; these were deliberately out of scope for the assessment.
+- **Testing and accessibility:** Unit tests cover validation, services, cache, and EF metadata; SQL-backed endpoint tests require a disposable database. UI accessibility review/remediation is outside assessment scope; no compliance claim is made.
+
+## Scope assumptions and possible enhancements
+
+- Manufacturer add/update/delete and a database-managed icon catalog, including more icon options, are future features. The five manufacturers are seeded; the UI hardcodes manufacturer and icon options.
+- VIN and registration were **added and implemented** for duplicate checks, although the assessment minimum names only owner, manufacturer, year, and weight. Database uniqueness constraints are a possible enhancement.
+- The assessment assumes owner and manufacturer names contain only alphanumeric characters. The current code does not consistently enforce a literal rule, and seeded owner names contain spaces. A production rule should define treatment of spaces and punctuation.
+- The design assumes no more than 10 categories, but the validator does not enforce a limit. The same icon may be reused by several categories.
+- A public queue-status endpoint and completion notification, separate command/query hosts, authentication, and accessibility work are outside the current scope.

@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using CreditWorks.VehicleManagement.Domain.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
 
 namespace CreditWorks.VehicleManagement.Unit.Test.Domain.Commands;
 

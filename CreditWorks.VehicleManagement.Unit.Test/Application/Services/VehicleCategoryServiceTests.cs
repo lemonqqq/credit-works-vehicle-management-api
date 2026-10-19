@@ -1,7 +1,7 @@
 using CreditWorks.VehicleManagement.Application.Contracts;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Application.Services.Impl;
 using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Commands;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
 using System.Collections.Immutable;
 

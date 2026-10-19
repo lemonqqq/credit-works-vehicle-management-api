@@ -1,6 +1,6 @@
-﻿using CreditWorks.VehicleManagement.Domain.Queries.Dto;
+﻿using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 
-namespace CreditWorks.VehicleManagement.Domain.Queries
+namespace CreditWorks.VehicleManagement.Application.Models.Queries
 {
     /// <summary>
     ///     Vehicles returned by a search, with paging information.

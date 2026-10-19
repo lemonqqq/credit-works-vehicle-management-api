@@ -1,7 +1,6 @@
-﻿using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Commands;
-using CreditWorks.VehicleManagement.Domain.Queries;
-using CreditWorks.VehicleManagement.Domain.Queries.Dto;
+﻿using CreditWorks.VehicleManagement.Application.Models.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Queries;
+using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 
 namespace CreditWorks.VehicleManagement.Application.Services
 {
@@ -11,26 +10,19 @@ namespace CreditWorks.VehicleManagement.Application.Services
     public interface IVehicleService
     {
         /// <summary>
-        ///     Validates a command and prepares the vehicle that will be persisted.
-        /// </summary>
-        /// <param name="command">The proposed vehicle details.</param>
-        /// <param name="id">An existing vehicle identifier for an update.</param>
-        /// <returns>The validated vehicle aggregate.</returns>
-        Task<Vehicle> Validate(VehicleCommand command, Guid? id = null);
-
-        /// <summary>
         ///     Creates a vehicle from the supplied details.
         /// </summary>
-        /// <param name="vehicle">The vehicle details to create.</param>
+        /// <param name="command">The proposed vehicle details.</param>
         /// <returns>A task that completes when the vehicle has been saved.</returns>
-        Task Create(Vehicle vehicle);
+        Task Create(VehicleCommand command);
 
         /// <summary>
         ///     Updates an existing vehicle.
         /// </summary>
-        /// <param name="vehicle">The replacement vehicle details.</param>
+        /// <param name="command">The proposed vehicle details.</param>
+        /// <param name="id">An existing vehicle identifier for an update.</param>
         /// <returns>A task that completes when the vehicle has been saved.</returns>
-        Task Update(Vehicle vehicle);
+        Task Update(VehicleCommand command, Guid id);
 
         /// <summary>
         ///     Gets a vehicle by its identifier.
@@ -44,10 +36,8 @@ namespace CreditWorks.VehicleManagement.Application.Services
         ///     Finds vehicles matching the supplied search criteria.
         /// </summary>
         /// <param name="query">The criteria used to select vehicles.</param>
-        /// <param name="orderFields">The list of order of the fields</param>
         /// <param name="cancellationToken">Cancels the operation.</param>
         /// <returns>The matching vehicles.</returns>
-        Task<IEnumerable<VehicleDto>> Search(VehicleSearchQuery query,
-            List<FieldSortOrder> orderFields = null, CancellationToken cancellationToken = default);
+        Task<VehicleSearchQueryResult> Search(VehicleSearchQuery query, CancellationToken cancellationToken = default);
     }
 }

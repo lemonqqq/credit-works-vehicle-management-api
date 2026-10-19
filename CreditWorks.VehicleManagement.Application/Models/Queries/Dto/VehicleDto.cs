@@ -1,4 +1,4 @@
-﻿namespace CreditWorks.VehicleManagement.Domain.Queries.Dto
+﻿namespace CreditWorks.VehicleManagement.Application.Models.Queries.Dto
 {
     /// <summary>
     ///     Vehicle details returned by a read operation.

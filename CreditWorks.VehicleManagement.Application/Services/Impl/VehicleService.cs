@@ -1,11 +1,11 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Application.Mappers;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Queries;
+using CreditWorks.VehicleManagement.Application.Models.Queries.Dto;
 using CreditWorks.VehicleManagement.Application.Validators;
 using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Commands;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
-using CreditWorks.VehicleManagement.Domain.Queries;
-using CreditWorks.VehicleManagement.Domain.Queries.Dto;
 
 namespace CreditWorks.VehicleManagement.Application.Services.Impl
 {
@@ -14,46 +14,47 @@ namespace CreditWorks.VehicleManagement.Application.Services.Impl
         : IVehicleService
     {
 
-        public async Task<Vehicle> Validate(VehicleCommand command, Guid? id = null)
+        private async Task<Vehicle> Validate(VehicleCommand command, Guid? id = null)
         {
             var manufacturer = await manufacturerStore.GetByNameAsync(command.Manufacturer)
                 ?? throw new ResourceNotFoundException($"Manufacturer {command.Manufacturer} was not found");
 
-            Vehicle vehicle;
             if (id.HasValue)
             {
-                vehicle = await vehicleStore.GetAsync(id.Value)
+                var vehicle = await vehicleStore.GetAsync(id.Value)
                     ?? throw new ResourceNotFoundException($"Vehicle {id} was not found");
                 if (!string.Equals(vehicle.ManufacturerName, command.Manufacturer, StringComparison.Ordinal))
                     logger.LogInfo($"Switching manufacturer from {vehicle.ManufacturerName} to {command.Manufacturer}");
                 vehicle.Update(command.OwnerName, manufacturer.Id, command.Year, command.Vin,
                     command.RegistrationNumber, command.WeightKg, manufacturer.Name);
+                return vehicle;
             }
-            else
-                vehicle = Vehicle.Create(command.OwnerName, manufacturer.Id, command.Year,
+            return Vehicle.Create(command.OwnerName, manufacturer.Id, command.Year,
                     command.Vin, command.RegistrationNumber, command.WeightKg);
-            return vehicle;
         }
 
-        public async Task Create(Vehicle vehicle)
+        public async Task Create(VehicleCommand command)
         {
-            logger.LogInfo("Create - start", vehicle);
+            logger.LogInfo("Create - start", command);
+
+            var vehicle = await Validate(command);
             VehicleValidator.ValidateVin(vehicle, await vehicleStore.QueryAsync(vin: vehicle.Vin));
             VehicleValidator.ValidateRegistrationNumber(vehicle, await vehicleStore.QueryAsync(registrationNumber: vehicle.RegistrationNumber));
-
             await vehicleStore.AddAsync(vehicle);
-            logger.LogInfo("Create - end", vehicle);
+
+            logger.LogInfo("Create - end", command);
         }
 
-        public async Task Update(Vehicle vehicle)
+        public async Task Update(VehicleCommand command, Guid id)
         {
-            logger.LogInfo("Update - start", vehicle);
+            logger.LogInfo("Update - start", command);
 
+            var vehicle = await Validate(command, id);
             VehicleValidator.ValidateVin(vehicle, await vehicleStore.QueryAsync(vin: vehicle.Vin));
             VehicleValidator.ValidateRegistrationNumber(vehicle, await vehicleStore.QueryAsync(registrationNumber: vehicle.RegistrationNumber));
             await vehicleStore.UpdateAsync(vehicle);
 
-            logger.LogInfo("Update - end", vehicle);
+            logger.LogInfo("Update - end", command);
         }
 
         public async Task<VehicleDto> Get(Guid id, CancellationToken cancellationToken)
@@ -68,23 +69,24 @@ namespace CreditWorks.VehicleManagement.Application.Services.Impl
             return result;
         }
 
-        public async Task<IEnumerable<VehicleDto>> Search(VehicleSearchQuery query,
-            List<FieldSortOrder> orderFields = null, CancellationToken cancellationToken = default)
+        public async Task<VehicleSearchQueryResult> Search(VehicleSearchQuery query, CancellationToken cancellationToken = default)
         {
             logger.LogInfo("Search - start", query);
-            var strSortingList = string.Join(", ", orderFields.Select(x => $"{x.FieldName} {(x.IsAscending ? "asc" : "desc")}"));
 
             var vehicles = await vehicleStore.QueryAsync(query.OwnerName, query.ManufacturerName,
-                query.Year, query.Vin, query.RegistrationNumber, query.MinWeightKg, query.MaxWeightKg, 
-                query.PageNumber, strSortingList, cancellationToken);
+                query.Year, minWeightKg: query.MinWeightKg, maxWeightKg: query.MaxWeightKg, 
+                pageNumber: query.PageNumber, sortingList: query.SortFieldList, cancellationToken: cancellationToken);
 
             if (vehicles == null || vehicles.Count == 0)
-                return [];
+                return new([], 0, 0);
 
-            var result = vehicles.Select(VehicleMapper.ToDto);
+            var result = vehicles.Select(VehicleMapper.ToDto).ToList();
+            var noOfRecords = await vehicleStore.QueryCountAsync(query.OwnerName, query.ManufacturerName,
+                query.Year, minWeightKg: query.MinWeightKg, maxWeightKg: query.MaxWeightKg,
+                cancellationToken: cancellationToken);
 
             logger.LogInfo("Search - end", query);
-            return result;
+            return new VehicleSearchQueryResult(result, query.PageNumber, noOfRecords);
         }
     }
 }

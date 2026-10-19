@@ -1,10 +1,10 @@
 using CreditWorks.VehicleManagement.Application.Contracts;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
+using CreditWorks.VehicleManagement.Application.Models.Queries;
 using CreditWorks.VehicleManagement.Application.Services;
-using CreditWorks.VehicleManagement.Domain.Commands;
-using CreditWorks.VehicleManagement.Domain.Queries;
-using CreditWorks.VehicleManagement.Domain.Queries.Dto;
 using CreditWorks.VehicleManagement.Infrastructure.Common;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CreditWorks.VehicleManagement.Rest
 {
@@ -31,7 +31,7 @@ namespace CreditWorks.VehicleManagement.Rest
         ///     The vehicle response or an error response.
         /// </returns>
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
+        public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken = default)
             => await ToResponse(() => vehicleService.Get(id, cancellationToken));
 
         /// <summary>
@@ -43,9 +43,8 @@ namespace CreditWorks.VehicleManagement.Rest
         ///     The matching vehicles or an error response.
         /// </returns>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] VehicleSearchQuery query, 
-            [FromBody] List<FieldSortOrder> orderFields = null, CancellationToken cancellationToken = default)
-            => await ToResponse(() => vehicleService.Search(query, orderFields, cancellationToken));
+        public async Task<IActionResult> Search([FromQuery] VehicleSearchQuery query, CancellationToken cancellationToken = default)
+            => await ToResponse(() => vehicleService.Search(query, cancellationToken));
 
         /// <summary>
         ///     Creates a vehicle.
@@ -58,9 +57,8 @@ namespace CreditWorks.VehicleManagement.Rest
         public async Task<IActionResult> Post([FromBody] VehicleCommand command)
             => await ToResponse(async() =>
             {
-                var vehicle = await vehicleService.Validate(command);
                 if (!requestQueueService.TryEnqueue(
-                    services => services.GetRequiredService<IVehicleService>().Create(vehicle), out var queueId))
+                    services => services.GetRequiredService<IVehicleService>().Create(command), out var queueId))
                     return Problem(statusCode: 503, title: "Queue is full");
 
                 return Accepted(queueId);
@@ -78,9 +76,8 @@ namespace CreditWorks.VehicleManagement.Rest
         public async Task<IActionResult> Put(Guid id, [FromBody] VehicleCommand command)
             => await ToResponse(async () =>
             {
-                var vehicle = await vehicleService.Validate(command, id);
                 if (!requestQueueService.TryEnqueue(
-                    services => services.GetRequiredService<IVehicleService>().Update(vehicle), out var queueId))
+                    services => services.GetRequiredService<IVehicleService>().Update(command, id), out var queueId))
                     return Problem(statusCode: 503, title: "Queue is full");
 
                 return Accepted(queueId);

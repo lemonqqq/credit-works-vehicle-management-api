@@ -1,4 +1,4 @@
-﻿using CreditWorks.VehicleManagement.Domain.Commands;
+﻿using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
 
 namespace CreditWorks.VehicleManagement.Application.Validators

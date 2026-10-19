@@ -1,4 +1,4 @@
-﻿using CreditWorks.VehicleManagement.Domain.Commands;
+﻿using CreditWorks.VehicleManagement.Application.Models.Commands;
 
 namespace CreditWorks.VehicleManagement.Application.Services
 {
@@ -16,16 +16,10 @@ namespace CreditWorks.VehicleManagement.Application.Services
         Task<int> Maintain(CategoryCommand command, CancellationToken cancellationToken);
 
         /// <summary>
-        ///     Validates the complete proposed category configuration.
-        /// </summary>
-        /// <param name="categories">All categories after the proposed change.</param>
-        void Validate(List<CategoryDto> categories);
-
-        /// <summary>
         ///     Gets all configured categories.
         /// </summary>
         /// <param name="cancellationToken">Cancels the operation.</param>
         /// <returns>The category details.</returns>
-        Task<List<Domain.Queries.Dto.CategoryDto>> GetAll(CancellationToken cancellationToken);
+        Task<List<Models.Queries.Dto.CategoryDto>> GetAll(CancellationToken cancellationToken);
     }
 }

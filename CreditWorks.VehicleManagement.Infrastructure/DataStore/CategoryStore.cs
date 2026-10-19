@@ -1,5 +1,6 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
+using CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities;
 using CreditWorks.VehicleManagement.Infrastructure.DataStore.Mappers;
 using CreditWorks.VehicleManagement.Infrastructure.Ef;
 using Microsoft.EntityFrameworkCore;

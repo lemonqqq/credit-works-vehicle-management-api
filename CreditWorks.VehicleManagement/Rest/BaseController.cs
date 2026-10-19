@@ -1,6 +1,7 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CreditWorks.VehicleManagement.Rest
 {
@@ -27,6 +28,11 @@ namespace CreditWorks.VehicleManagement.Rest
                 var result = await func.Invoke();
                 // Preserve responses already selected by an action, such as Accepted.
                 return result is IActionResult actionResult ? actionResult : Ok(result);
+            }
+            catch (ValidationException ex)
+            {
+                logger.LogInfo($"{ex.Message}", func);
+                return Problem(statusCode: 400, title: "Invalid request", detail: ex.Message);
             }
             catch (ResourceNotFoundException ex)
             {

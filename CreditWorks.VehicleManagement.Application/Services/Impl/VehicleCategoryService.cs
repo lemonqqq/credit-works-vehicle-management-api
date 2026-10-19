@@ -1,8 +1,8 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Application.Mappers;
+using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Application.Validators;
 using CreditWorks.VehicleManagement.Domain.Aggregates;
-using CreditWorks.VehicleManagement.Domain.Commands;
 
 namespace CreditWorks.VehicleManagement.Application.Services.Impl
 {
@@ -11,7 +11,7 @@ namespace CreditWorks.VehicleManagement.Application.Services.Impl
     {
         private const string CategoryCacheKey = "VehicleCategoryCache";
 
-        public async Task<List<Domain.Queries.Dto.CategoryDto>> GetAll(CancellationToken cancellationToken = default)
+        public async Task<List<Models.Queries.Dto.CategoryDto>> GetAll(CancellationToken cancellationToken = default)
         {
             if (cacheService.TryGet<VehicleCategory>(CategoryCacheKey, out var categoryCache))
             {
@@ -22,15 +22,10 @@ namespace CreditWorks.VehicleManagement.Application.Services.Impl
             return [.. categories.Select(VehicleCategoryMapper.ToDto)];
         }
 
-        public void Validate(List<CategoryDto> categories)
-        {
-            VehicleCategoryValidator.Validate(categories);
-        }
-
         public async Task<int> Maintain(CategoryCommand command, CancellationToken cancellationToken = default)
         {
             // A queued request must still satisfy the complete-range rules when it executes.
-            Validate(command.Categories);
+            VehicleCategoryValidator.Validate(command.Categories);
             var categories = command.Categories.Select(x =>
             {
                 if (x.Id == null)
