@@ -19,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\" />
+    <ProjectReference Include="..\CreditWorks.VehicleManagement.Application\CreditWorks.VehicleManagement.Application.csproj" />
+    <ProjectReference Include="..\CreditWorks.VehicleManagement.Domain\CreditWorks.VehicleManagement.Domain.csproj" />
+    <ProjectReference Include="..\CreditWorks.VehicleManagement.Infrastructure\CreditWorks.VehicleManagement.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

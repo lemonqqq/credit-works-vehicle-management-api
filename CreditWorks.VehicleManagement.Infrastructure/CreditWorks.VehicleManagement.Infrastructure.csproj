@@ -16,11 +16,12 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
+		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.4" />
 		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\CreditWorks.VehicleManagement.Application\CreditWorks.VehicleManagement.Application.csproj" />
-	  <ProjectReference Include="..\CreditWorks.VehicleManagement.Domain\CreditWorks.VehicleManagement.Domain.csproj" />
 	</ItemGroup>
 
 </Project>

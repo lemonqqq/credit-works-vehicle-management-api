@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/Application/">
+    <Project Path="CreditWorks.VehicleManagement.Application/CreditWorks.VehicleManagement.Application.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="CreditWorks.VehicleManagement.Domain/CreditWorks.VehicleManagement.Domain.csproj" />
+    <Project Path="CreditWorks.VehicleManagement.Infrastructure/CreditWorks.VehicleManagement.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="CreditWorks.VehicleManagement.Unit.Test/CreditWorks.VehicleManagement.Unit.Test.csproj" />
+  </Folder>
+  <Project Path="CreditWorks.VehicleManagement/CreditWorks.VehicleManagement.csproj" />
+</Solution>
