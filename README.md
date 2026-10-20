@@ -7,8 +7,10 @@ ASP.NET Core 10 API with Entity Framework Core and SQL Server for the vehicle ma
 Prerequisites: .NET 10 SDK, SQL Server 2019 or later (LocalDB is suitable locally), and the `dotnet-ef` tool. From this directory:
 
 ```powershell
-./build/initialize-db.ps1 -ServerInstance "(localdb)\MSSQLLocalDB"
-dotnet run --project CreditWorks.VehicleManagement/CreditWorks.VehicleManagement.csproj --launch-profile http
+cd .\credit-works-vehicle-management-api
+.\build\initialize-db.ps1 -ServerInstance "(localdb)\MSSQLLocalDB"
+dotnet build .\CreditWorks.VehicleManagement.slnx
+dotnet run --project .\CreditWorks.VehicleManagement\CreditWorks.VehicleManagement.csproj --launch-profile http
 ```
 
 The script stores `ConnectionStrings:DefaultConnection` in API user secrets and applies the checked-in `InitialCreate` migration. It defaults to database `CreditWorksDB`; `-DatabaseName` overrides this. Alternatively, set `ConnectionStrings:DefaultConnection` or all of `Database:Server`, `Database:Name`, `Database:Username`, and `Database:Password`. The latter path uses SQL encryption and requires a trusted server certificate. The development HTTP profile listens on `http://localhost:5155`; Swagger UI is at `/swagger` in Development. `GET /health` reports host availability, not database health. Migrations are not run automatically at startup.
