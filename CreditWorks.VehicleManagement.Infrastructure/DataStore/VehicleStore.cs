@@ -34,42 +34,46 @@ public sealed class VehicleStore(VehicleManagementDbContext context) : IVehicleS
             .Where(x => (string.IsNullOrWhiteSpace(ownerName) || x.OwnerName.Contains(ownerName))
                 && (string.IsNullOrWhiteSpace(manufacturer) || x.Manufacturer.Name.Contains(manufacturer))
                 && (year == null || x.Year == year)
-                && (string.IsNullOrWhiteSpace(vin) || x.Vin.Contains(vin))
-                && (string.IsNullOrWhiteSpace(registrationNumber) || x.RegistrationNumber.Contains(registrationNumber))
+                && (string.IsNullOrWhiteSpace(vin) || x.Vin.Equals(vin))
+                && (string.IsNullOrWhiteSpace(registrationNumber) || x.RegistrationNumber.Equals(registrationNumber))
                 && (!minWeightKg.HasValue || x.WeightKg >= minWeightKg.Value)
                 && (!maxWeightKg.HasValue || x.WeightKg < maxWeightKg.Value));
 
-        var orderedQuery = (sortingList == null
-                ? query.OrderBy(x => x.OwnerName)
-                : OrderBy(query, sortingList))
-            .Skip(_pageSize * (pageNumber - 1))
-            .Take(_pageSize);
+        var queryOrderBy = OrderBySortField(query, sortingList);
 
-        var result = await orderedQuery.ToListAsync(cancellationToken);
+        var result = await queryOrderBy
+            .Skip(_pageSize * (pageNumber - 1))
+            .Take(_pageSize)
+            .ToListAsync(cancellationToken);
         return [..result.Select(VehicleMapper.ToAggregate)];
     }
 
-    private static IOrderedQueryable<Vehicle> OrderBy(IQueryable<Vehicle> query, List<FieldSortOrder> fieldList)
+    private static IOrderedQueryable<Vehicle> OrderBySortField(IQueryable<Vehicle> query, List<FieldSortOrder>? fieldList)
     {
-        var orderQuery = query.OrderBy(x => x.OwnerName);
+        if (fieldList == null || fieldList.Count == 0)
+            return query.OrderBy(x => x.OwnerName).ThenBy(x => x.Id);
+
+        IOrderedQueryable<Vehicle>? orderQuery = null;
         foreach (var item in fieldList)
         {
-            if (item.FieldName == "ownerName" && !item.IsAscending)
-                orderQuery = orderQuery.OrderByDescending(x => x.OwnerName);
+            if (item.FieldName == "ownerName" && item.IsAscending)
+                orderQuery = orderQuery == null ? query.OrderBy(x => x.OwnerName) : orderQuery.ThenBy(x => x.OwnerName);
+            else if (item.FieldName == "ownerName")
+                orderQuery = orderQuery == null ? query.OrderByDescending(x => x.OwnerName) : orderQuery.ThenByDescending(x => x.OwnerName);
             else if (item.FieldName == "manufacturer" && item.IsAscending)
-                orderQuery = query.OrderBy(x => x.Manufacturer.Name);
+                orderQuery = orderQuery == null ? query.OrderBy(x => x.Manufacturer.Name) : orderQuery.ThenBy(x => x.Manufacturer.Name);
             else if (item.FieldName == "manufacturer")
-                orderQuery = query.OrderByDescending(x => x.Manufacturer.Name);
+                orderQuery = orderQuery == null ? query.OrderByDescending(x => x.Manufacturer.Name) : orderQuery.ThenByDescending(x => x.Manufacturer.Name);
             else if (item.FieldName == "year" && item.IsAscending)
-                orderQuery = query.OrderBy(x => x.Year);
+                orderQuery = orderQuery == null ? query.OrderBy(x => x.Year) : orderQuery.ThenBy(x => x.Year);
             else if (item.FieldName == "year")
-                orderQuery = query.OrderByDescending(x => x.Year);
+                orderQuery = orderQuery == null ? query.OrderByDescending(x => x.Year) : orderQuery.ThenByDescending(x => x.Year);
             else if (item.FieldName == "weight" && item.IsAscending)
-                orderQuery = query.OrderBy(x => x.WeightKg);
+                orderQuery = orderQuery == null ? query.OrderBy(x => x.WeightKg) : orderQuery.ThenBy(x => x.WeightKg);
             else if (item.FieldName == "weight")
-                orderQuery = query.OrderByDescending(x => x.WeightKg);
+                orderQuery = orderQuery == null ? query.OrderByDescending(x => x.WeightKg) : orderQuery.ThenByDescending(x => x.WeightKg);
         }
-        return orderQuery;
+        return (orderQuery ?? query.OrderBy(x => x.OwnerName)).ThenBy(x => x.Id);
     }
 
     public async Task<int> QueryCountAsync(string? ownerName = null, string? manufacturer = null, int? year = null,
@@ -81,8 +85,8 @@ public sealed class VehicleStore(VehicleManagementDbContext context) : IVehicleS
             .Where(x => (string.IsNullOrWhiteSpace(ownerName) || x.OwnerName.Contains(ownerName))
                 && (string.IsNullOrWhiteSpace(manufacturer) || x.Manufacturer.Name.Contains(manufacturer))
                 && (year == null || x.Year == year)
-                && (string.IsNullOrWhiteSpace(vin) || x.Vin.Contains(vin))
-                && (string.IsNullOrWhiteSpace(registrationNumber) || x.RegistrationNumber.Contains(registrationNumber))
+                && (string.IsNullOrWhiteSpace(vin) || x.Vin == vin)
+                && (string.IsNullOrWhiteSpace(registrationNumber) || x.RegistrationNumber == registrationNumber)
                 && (!minWeightKg.HasValue || x.WeightKg >= minWeightKg.Value)
                 && (!maxWeightKg.HasValue || x.WeightKg < maxWeightKg.Value));
 

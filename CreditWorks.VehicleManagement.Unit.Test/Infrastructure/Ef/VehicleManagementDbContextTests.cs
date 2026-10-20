@@ -49,4 +49,16 @@ public sealed class VehicleManagementDbContextTests
         Assert.Equal(2, category.FindProperty(nameof(VehicleCategory.MinWeightKg))!.GetScale());
         Assert.Equal(2, category.FindProperty(nameof(VehicleCategory.MaxWeightKg))!.GetScale());
     }
+
+    [Fact]
+    public void VehicleManagementDbContext_WhenModelCreated_ThenVehicleIdentifiersAreUnique()
+    {
+        using var context = CreateContext();
+        var vehicle = context.Model.FindEntityType(typeof(Vehicle))!;
+
+        Assert.True(vehicle.GetIndexes().Single(index =>
+            index.Properties.SingleOrDefault()?.Name == nameof(Vehicle.Vin)).IsUnique);
+        Assert.True(vehicle.GetIndexes().Single(index =>
+            index.Properties.SingleOrDefault()?.Name == nameof(Vehicle.RegistrationNumber)).IsUnique);
+    }
 }

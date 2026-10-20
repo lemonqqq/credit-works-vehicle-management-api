@@ -23,7 +23,6 @@ namespace CreditWorks.VehicleManagement.Application.Models.Queries
         /// <summary>
         ///     Gets or sets a year of manufacture filter.
         /// </summary>
-        [Range(2000, 2050, ErrorMessage = "Invalid vehicle make year")]
         public int? Year { get; set; }
 
         /// <summary>
@@ -51,6 +50,8 @@ namespace CreditWorks.VehicleManagement.Application.Models.Queries
         {
             if (PageNumber < 1)
                 yield return new ValidationResult("Page number must be positive", [nameof(PageNumber)]);
+            if (Year is < 2000 or > 2050)
+                yield return new ValidationResult("Invalid vehicle make year", [nameof(Year)]);
             if (MinWeightKg < 0 || MaxWeightKg < 0)
                 yield return new ValidationResult("Weight filters cannot be negative", [nameof(MinWeightKg), nameof(MaxWeightKg)]);
             if (MinWeightKg.HasValue && MaxWeightKg.HasValue && MinWeightKg >= MaxWeightKg)

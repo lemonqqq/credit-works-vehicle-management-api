@@ -2,9 +2,7 @@ using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Application.Models.Queries;
 using CreditWorks.VehicleManagement.Application.Services;
-using CreditWorks.VehicleManagement.Infrastructure.Common;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace CreditWorks.VehicleManagement.Rest
 {
@@ -17,7 +15,7 @@ namespace CreditWorks.VehicleManagement.Rest
     [ApiController]
     [Route("api/vehicles")]
     public class VehiclesController(IVehicleService vehicleService,
-        RequestQueueService requestQueueService,
+        IRequestQueueWriteService requestQueueService,
         ILoggingService<VehiclesController> logger) 
         : BaseController<VehiclesController>(logger)
     {

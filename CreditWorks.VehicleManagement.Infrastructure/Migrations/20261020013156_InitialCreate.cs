@@ -34,7 +34,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     MinWeightKg = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     MaxWeightKg = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
-                    IconKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    IconKey = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -123,6 +123,18 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                 name: "IX_Vehicles_ManufacturerId",
                 table: "Vehicles",
                 column: "ManufacturerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vehicles_RegistrationNumber",
+                table: "Vehicles",
+                column: "RegistrationNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Vehicles_Vin",
+                table: "Vehicles",
+                column: "Vin",
+                unique: true);
         }
 
         /// <inheritdoc />

@@ -6,7 +6,7 @@ namespace CreditWorks.VehicleManagement.Application.Models.Queries
     ///     Vehicles returned by a search, with paging information.
     /// </summary>
     /// <param name="Data">The matching vehicles on the returned page.</param>
-    /// <param name="PageCount">The number of pages.</param>
+    /// <param name="PageNumber">The requested page number.</param>
     /// <param name="TotalRecords">The total number of matching vehicles.</param>
-    public sealed record VehicleSearchQueryResult(IReadOnlyList<VehicleDto> Data, int PageCount, int TotalRecords);
+    public sealed record VehicleSearchQueryResult(IReadOnlyList<VehicleDto> Data, int PageNumber, int TotalRecords);
 }

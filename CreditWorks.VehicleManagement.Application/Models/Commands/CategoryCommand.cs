@@ -12,7 +12,7 @@ namespace CreditWorks.VehicleManagement.Application.Models.Commands
         /// <summary>
         ///     Gets or sets the categories to maintain.
         /// </summary>
-        public List<CategoryDto> Categories { get; set; }
+        public required List<CategoryDto> Categories { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext context)
         {
@@ -53,12 +53,12 @@ namespace CreditWorks.VehicleManagement.Application.Models.Commands
         /// </summary>
         [Required]
         [Length(1, 100, ErrorMessage = "Category must have 1 to 100 characters")]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         /// <summary>
         ///     Gets or sets an optional description.
         /// </summary>
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         /// <summary>
         ///     Gets or sets the lower weight boundary in kilograms.
@@ -76,9 +76,9 @@ namespace CreditWorks.VehicleManagement.Application.Models.Commands
         ///     Gets or sets the key of the category icon.
         /// </summary>
         [Required]
-        [Length(1, 100, ErrorMessage = "IconKey must have 1 to 100 characters")]
+        [Length(1, 20, ErrorMessage = "IconKey must have 1 to 20 characters")]
         [RegularExpression(@"^(bike|car|van|truck)$", ErrorMessage = "Unsupported category icon")]
-        public string IconKey { get; set; }
+        public required string IconKey { get; set; }
 
     }
 

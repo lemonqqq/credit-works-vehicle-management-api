@@ -90,12 +90,12 @@ public sealed class VehicleCommandValidationTests
     }
 
     [Fact]
-    [Trait("Requirement", "FourRequiredFields")]
-    public void VehicleCommand_WhenOnlyAssignmentFieldsProvided_ThenValidationPasses()
+    public void VehicleCommand_WhenAllSixRequiredFieldsProvided_ThenValidationPasses()
     {
         var command = new VehicleCommand
         {
-            OwnerName = "Alex Smith", Manufacturer = "Mazda", Year = 2020, WeightKg = 1850.75m
+            OwnerName = "Alex Smith", Manufacturer = "Mazda", Year = 2020, WeightKg = 1850.75m,
+            Vin = "VIN01234567890123", RegistrationNumber = "REGO12"
         };
         Assert.Empty(Validate(command));
     }

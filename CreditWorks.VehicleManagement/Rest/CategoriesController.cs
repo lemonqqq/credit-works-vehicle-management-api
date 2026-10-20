@@ -1,9 +1,7 @@
 ﻿using CreditWorks.VehicleManagement.Application.Contracts;
 using CreditWorks.VehicleManagement.Application.Models.Commands;
 using CreditWorks.VehicleManagement.Application.Services;
-using CreditWorks.VehicleManagement.Infrastructure.Common;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace CreditWorks.VehicleManagement.Rest
 {
@@ -16,7 +14,7 @@ namespace CreditWorks.VehicleManagement.Rest
     [ApiController]
     [Route("/api/categories")]
     public class CategoriesController(IVehicleCategoryService categoryService,
-        RequestQueueService requestQueueService,
+        IRequestQueueWriteService requestQueueService,
         ILoggingService<CategoriesController> logger) : BaseController<CategoriesController>(logger)
     {
         /// <summary>

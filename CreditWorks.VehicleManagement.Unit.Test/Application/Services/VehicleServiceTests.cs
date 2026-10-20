@@ -127,6 +127,20 @@ public sealed class VehicleServiceTests
     }
 
     [Fact]
+    public async Task Create_WhenRegistrationIsOnlyAStringFragment_ThenAddsVehicle()
+    {
+        var store = new VehicleStoreFake();
+        store.Data.Add(Vehicle.Rehydrate(Guid.NewGuid(), "Existing", MazdaId, "Mazda", 2020,
+            "XYZ12345678901234", "XABC12", 100m));
+        var command = ValidCommand();
+        command.RegistrationNumber = "ABC";
+
+        await CreateService(store).Create(command);
+
+        Assert.Equal(2, store.Data.Count);
+    }
+
+    [Fact]
     public async Task Update_WhenVehicleMissing_ThenReportsNotFound()
     {
         await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
@@ -160,6 +174,8 @@ public sealed class VehicleServiceTests
         Assert.Equal(500m, store.LastMinWeightKg);
         Assert.Equal(2500m, store.LastMaxWeightKg);
         Assert.Equal(1, result.TotalRecords);
+        Assert.Equal(2, result.PageNumber);
+        Assert.Empty(result.Data);
     }
 
     private sealed class VehicleStoreFake : IVehicleStore
@@ -188,12 +204,13 @@ public sealed class VehicleServiceTests
             LastMaxWeightKg = maxWeight;
             return Task.FromResult(Data.Where(x =>
                 (ownerName is null || x.OwnerName.Contains(ownerName)) &&
-                (manufacturer is null || x.ManufacturerName.Contains(manufacturer) == true) &&
+                (manufacturer is null || x.ManufacturerName?.Contains(manufacturer) == true) &&
                 (year is null || x.Year == year) &&
-                (vin is null || x.Vin.Contains(vin)) &&
-                (registrationNumber is null || x.RegistrationNumber.Contains(registrationNumber)) &&
+                (vin is null || x.Vin == vin) &&
+                (registrationNumber is null || x.RegistrationNumber == registrationNumber) &&
                 (minWeightKg is null || x.WeightKg >= minWeightKg) &&
-                (maxWeight is null || x.WeightKg < maxWeight)).ToList());
+                (maxWeight is null || x.WeightKg < maxWeight))
+                .Skip(10 * (pageNumber - 1)).Take(10).ToList());
         }
 
         public Task AddAsync(Vehicle vehicle)

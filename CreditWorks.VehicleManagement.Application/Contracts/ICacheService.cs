@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
 namespace CreditWorks.VehicleManagement.Application.Contracts
 {

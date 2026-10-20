@@ -73,17 +73,18 @@ namespace CreditWorks.VehicleManagement.Application.Services.Impl
         {
             logger.LogInfo("Search - start", query);
 
+            var noOfRecords = await vehicleStore.QueryCountAsync(query.OwnerName, query.ManufacturerName,
+                query.Year, minWeightKg: query.MinWeightKg, maxWeightKg: query.MaxWeightKg,
+                cancellationToken: cancellationToken);
+
+            if (noOfRecords <= 0)
+                return new([], 0, 0);
+
             var vehicles = await vehicleStore.QueryAsync(query.OwnerName, query.ManufacturerName,
                 query.Year, minWeightKg: query.MinWeightKg, maxWeightKg: query.MaxWeightKg, 
                 pageNumber: query.PageNumber, sortingList: query.SortFieldList, cancellationToken: cancellationToken);
 
-            if (vehicles == null || vehicles.Count == 0)
-                return new([], 0, 0);
-
             var result = vehicles.Select(VehicleMapper.ToDto).ToList();
-            var noOfRecords = await vehicleStore.QueryCountAsync(query.OwnerName, query.ManufacturerName,
-                query.Year, minWeightKg: query.MinWeightKg, maxWeightKg: query.MaxWeightKg,
-                cancellationToken: cancellationToken);
 
             logger.LogInfo("Search - end", query);
             return new VehicleSearchQueryResult(result, query.PageNumber, noOfRecords);

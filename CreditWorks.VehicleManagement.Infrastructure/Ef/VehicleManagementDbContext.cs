@@ -43,10 +43,14 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Ef
 
                 entity.Property(x => x.RegistrationNumber).HasMaxLength(6)
                     .IsRequired();
+                entity.HasIndex(x => x.RegistrationNumber)
+                    .IsUnique();
 
                 entity.Property(x => x.Year).IsRequired();
 
                 entity.Property(x => x.Vin).HasMaxLength(17).IsFixedLength();
+                entity.HasIndex(x => x.Vin)
+                    .IsUnique();
 
                 entity.Property(x => x.WeightKg)
                     .HasPrecision(18, 2)
@@ -71,7 +75,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Ef
                     .HasPrecision(18, 2);
 
                 entity.Property(x => x.IconKey)
-                    .HasMaxLength(100)
+                    .HasMaxLength(20)
                     .IsRequired();
             });
         }

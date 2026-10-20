@@ -31,8 +31,11 @@ builder.Services.AddScoped<IVehicleCategoryService, VehicleCategoryService>();
 builder.Services.AddDbContext<VehicleManagementDbContext>(options =>
     options.UseSqlServer(DatabaseConfiguration.GetConnectionString(builder.Configuration)));
 
+var requestQueueService = new RequestQueueService();
+
 builder.Services.AddHostedService<RequestWorkerService>();
-builder.Services.AddSingleton<RequestQueueService>();
+builder.Services.AddSingleton<IRequestQueueWriteService>(requestQueueService);
+builder.Services.AddSingleton<IRequestQueuedService>(requestQueueService);
 
 var app = builder.Build();
 

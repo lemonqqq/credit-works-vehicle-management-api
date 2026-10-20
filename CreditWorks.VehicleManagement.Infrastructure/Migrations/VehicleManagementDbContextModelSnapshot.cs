@@ -22,7 +22,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("CreditWorks.VehicleManagement.Domain.Entities.Manufacturer", b =>
+            modelBuilder.Entity("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.Manufacturer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -68,7 +68,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CreditWorks.VehicleManagement.Domain.Entities.Vehicle", b =>
+            modelBuilder.Entity("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -103,6 +103,12 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ManufacturerId");
+
+                    b.HasIndex("RegistrationNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Vin")
+                        .IsUnique();
 
                     b.ToTable("Vehicles");
 
@@ -309,7 +315,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CreditWorks.VehicleManagement.Domain.Entities.VehicleCategory", b =>
+            modelBuilder.Entity("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.VehicleCategory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -321,8 +327,8 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
 
                     b.Property<string>("IconKey")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal?>("MaxWeightKg")
                         .HasPrecision(18, 2)
@@ -370,9 +376,9 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CreditWorks.VehicleManagement.Domain.Entities.Vehicle", b =>
+            modelBuilder.Entity("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.Vehicle", b =>
                 {
-                    b.HasOne("CreditWorks.VehicleManagement.Domain.Entities.Manufacturer", "Manufacturer")
+                    b.HasOne("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.Manufacturer", "Manufacturer")
                         .WithMany("Vehicles")
                         .HasForeignKey("ManufacturerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -381,7 +387,7 @@ namespace CreditWorks.VehicleManagement.Infrastructure.Migrations
                     b.Navigation("Manufacturer");
                 });
 
-            modelBuilder.Entity("CreditWorks.VehicleManagement.Domain.Entities.Manufacturer", b =>
+            modelBuilder.Entity("CreditWorks.VehicleManagement.Infrastructure.DataStore.Entities.Manufacturer", b =>
                 {
                     b.Navigation("Vehicles");
                 });

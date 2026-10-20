@@ -1,17 +1,18 @@
-﻿using CreditWorks.VehicleManagement.Domain.Common;
+﻿using CreditWorks.VehicleManagement.Application.Contracts;
+using CreditWorks.VehicleManagement.Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace CreditWorks.VehicleManagement.Infrastructure.Common
 {
-    public sealed class RequestWorkerService(RequestQueueService requestQueueService, 
+    public sealed class RequestWorkerService(IRequestQueuedService requestQueueService,
         IServiceScopeFactory scopes, 
         ILogger<RequestWorkerService> logger) : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            await foreach(var item in requestQueueService.Reader.ReadAllAsync(cancellationToken))
+            await foreach(var item in requestQueueService.ReadAllAsync(cancellationToken))
             {
                 requestQueueService.Set(item.Id, new QueueStatus("running"));
                 try
